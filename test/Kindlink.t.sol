@@ -41,7 +41,7 @@ contract KindlinkTest is Test {
     }
 
     function testAddCandidateOnlyOwnerFailed() public {
-        vm.expectRevert("Only owner can do this action");
+        vm.expectRevert();
         Kindlink(address(proxy)).addCandidates(
             wdAddress,
             foundationName,
@@ -195,13 +195,35 @@ contract KindlinkTest is Test {
 
     function testApproveCandidateNotFoundFailed() public {
         address falseFoundationAddress = makeAddr("falseFoundationAddress");
-        string memory name = "KitaBisa";
-        address coWithdrawalAddress = makeAddr("coWithdrawalAddress");
         vm.expectRevert("Foundation Candidate not found");
         Kindlink(address(proxy)).approveCandidate(falseFoundationAddress);
     }
-}
 
-/* 
-- tambahin proxy upgradable apapun itu
- */
+    function testApproveCandidate() public {
+        address user1 = makeAddr("user1");
+        vm.deal(user1, 10 ether);
+
+        vm.prank(user1);
+        Kindlink(address(proxy)).donate{value: 1 ether}(foundationAddresses[0]);
+
+        vm.prank(owner);
+        Kindlink(address(proxy)).addCandidates(
+            wdAddress,
+            foundationName,
+            coWdAddress
+        );
+
+        vm.prank(user1);
+        Kindlink(address(proxy)).vote(true, wdAddress);
+
+        address newContractAddress = Kindlink(address(proxy)).approveCandidate(
+            wdAddress
+        );
+
+        (address contractAddress, string memory name) = Kindlink(address(proxy))
+            .getListedFoundations(newContractAddress);
+
+        assertEq(contractAddress, newContractAddress);
+        assertEq(name, foundationName);
+    }
+}

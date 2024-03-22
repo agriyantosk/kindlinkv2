@@ -129,7 +129,7 @@ contract Kindlink is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
     function approveCandidate(
         address withdrawalAddress
-    ) external checkFoundationCandidate(withdrawalAddress) {
+    ) external checkFoundationCandidate(withdrawalAddress) returns (address) {
         if (countVote(withdrawalAddress)) {
             Foundation newFoundation = new Foundation(
                 owner(),
@@ -143,6 +143,8 @@ contract Kindlink is Initializable, OwnableUpgradeable, UUPSUpgradeable {
             delete candidates[withdrawalAddress];
 
             emit WinsVote(address(newFoundation));
+
+            return address(newFoundation);
         } else {
             delete candidates[withdrawalAddress];
             emit LoseVote(withdrawalAddress);
@@ -165,7 +167,18 @@ contract Kindlink is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         );
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner() {}
+    function getListedFoundations(
+        address contractAddress
+    ) external view returns (address, string memory) {
+        return (
+            foundations[contractAddress].withdrawalAddress,
+            foundations[contractAddress].name
+        );
+    }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 
     modifier checkFoundationCandidate(address withdrawalAddress) {
         FoundationCandidate storage candidate = candidates[withdrawalAddress];
