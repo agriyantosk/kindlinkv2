@@ -8,14 +8,15 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract Kindlink is Initializable {
     struct FoundationCandidate {
-        address contractAddress;
+        address withdrawalAddress;
         string name;
+        address coWithdrawalAddress;
         uint256 yesVotes;
         uint256 noVotes;
     }
 
     struct ListedFoundation {
-        address contractAddress;
+        address withdrawalAddress;
         string name;
     }
 
@@ -25,40 +26,62 @@ contract Kindlink is Initializable {
     mapping(address => mapping(address => bool)) isVoted;
     mapping(address => uint256) totalUsersDonations;
 
-    event Donate(address indexed sender, address indexed foundation, uint256 value);
+    event Donate(
+        address indexed sender,
+        address indexed foundation,
+        uint256 value
+    );
     event Vote(address indexed sender, address indexed foundation, bool vote);
     event WinsVote(address indexed foundation);
     event LoseVote(address indexed foundation);
 
-    function initialize(address[] memory _foundationAddress, string[] memory _foundationName) public initializer {
+    function initialize(
+        address[] memory _withdrawalAddress,
+        string[] memory _foundationName
+    ) public initializer {
         owner = msg.sender;
-        require(_foundationAddress.length == _foundationName.length, "Foundation Address and Name length must be the same");
-        for (uint256 i = 0; i < _foundationAddress.length; i++) {
-            foundations[_foundationAddress[i]] = ListedFoundation(_foundationAddress[i], _foundationName[i]);
+        require(
+            _withdrawalAddress.length == _foundationName.length,
+            "Foundation Address and Name length must be the same"
+        );
+        for (uint256 i = 0; i < _withdrawalAddress.length; i++) {
+            foundations[_withdrawalAddress[i]] = ListedFoundation(
+                _withdrawalAddress[i],
+                _foundationName[i]
+            );
         }
     }
 
-    function donate(address foundationAddress) external payable {
-        require(foundationAddress != address(0), "Not allowing users to send ether to 0 address");
-        ListedFoundation storage foundation = foundations[foundationAddress];
-        require(foundation.contractAddress == foundationAddress, "Foundation is not registered");
-        (bool sent,) = foundationAddress.call{value: msg.value}("");
+    function donate(address withdrawalAddress) external payable {
+        require(
+            withdrawalAddress != address(0),
+            "Not allowing users to send ether to 0 address"
+        );
+        ListedFoundation storage foundation = foundations[withdrawalAddress];
+        require(
+            foundation.withdrawalAddress == withdrawalAddress,
+            "Foundation is not registered"
+        );
+        (bool sent, ) = withdrawalAddress.call{value: msg.value}("");
         require(sent, "Donation Failed");
         totalUsersDonations[msg.sender] += msg.value;
 
-        emit Donate(msg.sender, foundationAddress, msg.value);
+        emit Donate(msg.sender, withdrawalAddress, msg.value);
     }
 
-    function vote(bool inputVote, address foundationAddress) external {
+    function vote(bool inputVote, address withdrawalAddress) external {
         // ini bagian pas dicek nya dulu
         require(
             totalUsersDonations[msg.sender] >= 1 ether,
             "You must have a minimal total donations of 1 ETH to be able to contribute in the voting process"
         );
-        require(!isVoted[foundationAddress][msg.sender], "You have already voted for this Foundation");
+        require(
+            !isVoted[withdrawalAddress][msg.sender],
+            "You have already voted for this Foundation"
+        );
 
         // ini bagian dia ngevote aja
-        FoundationCandidate storage candidate = candidates[foundationAddress];
+        FoundationCandidate storage candidate = candidates[withdrawalAddress];
 
         if (inputVote) {
             candidate.yesVotes++;
@@ -67,20 +90,33 @@ contract Kindlink is Initializable {
         }
 
         // ini bagian yang udah vote diitung
-        isVoted[foundationAddress][msg.sender] = true;
+        isVoted[withdrawalAddress][msg.sender] = true;
 
-        emit Vote(msg.sender, foundationAddress, inputVote);
+        emit Vote(msg.sender, withdrawalAddress, inputVote);
     }
 
-    function addCandidates(address foundationAddress, string memory name) external onlyOwner {
-        require(foundationAddress != address(0), "Not allowing users to send ether to 0 address");
-        candidates[foundationAddress] = FoundationCandidate(foundationAddress, name, 0, 0);
+    function addCandidates(
+        address withdrawalAddress,
+        string memory name,
+        address coWithdrawalAddress
+    ) external onlyOwner {
+        require(
+            withdrawalAddress != address(0),
+            "Not allowing users to send ether to 0 address"
+        );
+        candidates[withdrawalAddress] = FoundationCandidate(
+            withdrawalAddress,
+            name,
+            coWithdrawalAddress,
+            0,
+            0
+        );
     }
 
-    function countVote(address foundationAddress) private view returns (bool) {
-        FoundationCandidate storage candidate = candidates[foundationAddress];
-        uint256 yesCount = candidate.yesVotes / (candidate.yesVotes + candidate.noVotes);
-        uint256 noCount = candidate.noVotes / (candidate.yesVotes + candidate.noVotes);
+    function countVote(address withdrawalAddress) private view returns (bool) {
+        FoundationCandidate storage candidate = candidates[withdrawalAddress];
+        uint256 yesCount = candidate.yesVotes;
+        uint256 noCount = candidate.noVotes;
 
         if (yesCount > noCount) {
             return true;
@@ -89,32 +125,36 @@ contract Kindlink is Initializable {
         }
     }
 
-    function approveCandidate(address foundationAddress, string memory name, address coAddress)
-        external
-        checkFoundationCandidate(foundationAddress)
-    {
-        if (countVote(foundationAddress)) {
-            Foundation newFoundation = new Foundation(owner, foundationAddress, coAddress);
-            foundations[address(newFoundation)] = ListedFoundation(address(newFoundation), name);
-            delete candidates[foundationAddress];
+    function approveCandidate(
+        address withdrawalAddress
+    ) external checkFoundationCandidate(withdrawalAddress) {
+        if (countVote(withdrawalAddress)) {
+            Foundation newFoundation = new Foundation(
+                owner,
+                withdrawalAddress,
+                candidates[withdrawalAddress].coWithdrawalAddress
+            );
+            foundations[address(newFoundation)] = ListedFoundation(
+                address(newFoundation),
+                candidates[withdrawalAddress].name
+            );
+            delete candidates[withdrawalAddress];
 
             emit WinsVote(address(newFoundation));
         } else {
-            delete candidates[foundationAddress];
-            emit LoseVote(foundationAddress);
+            delete candidates[withdrawalAddress];
+            emit LoseVote(withdrawalAddress);
         }
     }
 
-    function getCandidates(address foundationAddress)
-        external
-        view
-        returns (address, string memory, uint256, uint256)
-    {
+    function getCandidates(
+        address withdrawalAddress
+    ) external view returns (address, string memory, uint256, uint256) {
         return (
-            candidates[foundationAddress].contractAddress,
-            candidates[foundationAddress].name,
-            candidates[foundationAddress].yesVotes,
-            candidates[foundationAddress].noVotes
+            candidates[withdrawalAddress].withdrawalAddress,
+            candidates[withdrawalAddress].name,
+            candidates[withdrawalAddress].yesVotes,
+            candidates[withdrawalAddress].noVotes
         );
     }
 
@@ -123,9 +163,12 @@ contract Kindlink is Initializable {
         _;
     }
 
-    modifier checkFoundationCandidate(address foundationAddress) {
-        FoundationCandidate storage candidate = candidates[foundationAddress];
-        require(candidate.contractAddress == foundationAddress, "Foundation Candidate not found");
+    modifier checkFoundationCandidate(address withdrawalAddress) {
+        FoundationCandidate storage candidate = candidates[withdrawalAddress];
+        require(
+            candidate.withdrawalAddress == withdrawalAddress,
+            "Foundation Candidate not found"
+        );
         _;
     }
 }
