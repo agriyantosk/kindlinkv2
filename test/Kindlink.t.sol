@@ -188,3 +188,10 @@ contract KindlinkTest is Test {
         );
     }
 }
+
+/* 
+- ganti foundation address jadi withdrawal address aja untuk konteks yang masih candidates
+- tambah coWith address pada saat deploy
+- ganti proses listedFoundation jadi ngambil aja dari mapping candidate biar gausah bawa data
+- tambahin proxy upgradable apapun itu
+ */
