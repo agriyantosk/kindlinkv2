@@ -155,4 +155,24 @@ contract KindlinkTest is Test {
         assertEq(yesVotes, 1);
         assertEq(noVotes, 0);
     }
+
+    function testDonateFailed() public {
+        address user1 = makeAddr("user1");
+        address falseFoundationAddress = makeAddr("falseFoundationAddress");
+        vm.deal(user1, 10 ether);
+
+        vm.prank(user1);
+        vm.expectRevert("Foundation is not registered");
+        Kindlink(address(proxy)).donate{value: 1 ether}(falseFoundationAddress);
+    }
+
+    function testDonate() public {
+        address user1 = makeAddr("user1");
+        vm.deal(user1, 10 ether);
+
+        vm.prank(user1);
+        Kindlink(address(proxy)).donate{value: 1 ether}(foundationAddresses[0]);
+
+        assertEq(foundationAddresses[0].balance, 1 ether);
+    }
 }
