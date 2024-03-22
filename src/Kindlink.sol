@@ -47,41 +47,41 @@ contract Kindlink is Initializable {
         for (uint256 i = 0; i < _withdrawalAddress.length; i++) {
             foundations[_withdrawalAddress[i]] = ListedFoundation(
                 _withdrawalAddress[i],
-                _foundationName[i],
+                _foundationName[i]
             );
         }
     }
 
-    function donate(address foundationAddress) external payable {
+    function donate(address withdrawalAddress) external payable {
         require(
-            foundationAddress != address(0),
+            withdrawalAddress != address(0),
             "Not allowing users to send ether to 0 address"
         );
-        ListedFoundation storage foundation = foundations[foundationAddress];
+        ListedFoundation storage foundation = foundations[withdrawalAddress];
         require(
-            foundation.withdrawalAddress == foundationAddress,
+            foundation.withdrawalAddress == withdrawalAddress,
             "Foundation is not registered"
         );
-        (bool sent, ) = foundationAddress.call{value: msg.value}("");
+        (bool sent, ) = withdrawalAddress.call{value: msg.value}("");
         require(sent, "Donation Failed");
         totalUsersDonations[msg.sender] += msg.value;
 
-        emit Donate(msg.sender, foundationAddress, msg.value);
+        emit Donate(msg.sender, withdrawalAddress, msg.value);
     }
 
-    function vote(bool inputVote, address foundationAddress) external {
+    function vote(bool inputVote, address withdrawalAddress) external {
         // ini bagian pas dicek nya dulu
         require(
             totalUsersDonations[msg.sender] >= 1 ether,
             "You must have a minimal total donations of 1 ETH to be able to contribute in the voting process"
         );
         require(
-            !isVoted[foundationAddress][msg.sender],
+            !isVoted[withdrawalAddress][msg.sender],
             "You have already voted for this Foundation"
         );
 
         // ini bagian dia ngevote aja
-        FoundationCandidate storage candidate = candidates[foundationAddress];
+        FoundationCandidate storage candidate = candidates[withdrawalAddress];
 
         if (inputVote) {
             candidate.yesVotes++;
@@ -90,29 +90,31 @@ contract Kindlink is Initializable {
         }
 
         // ini bagian yang udah vote diitung
-        isVoted[foundationAddress][msg.sender] = true;
+        isVoted[withdrawalAddress][msg.sender] = true;
 
-        emit Vote(msg.sender, foundationAddress, inputVote);
+        emit Vote(msg.sender, withdrawalAddress, inputVote);
     }
 
     function addCandidates(
-        address foundationAddress,
-        string memory name
+        address withdrawalAddress,
+        string memory name,
+        address coWithdrawalAddress
     ) external onlyOwner {
         require(
-            foundationAddress != address(0),
+            withdrawalAddress != address(0),
             "Not allowing users to send ether to 0 address"
         );
-        candidates[foundationAddress] = FoundationCandidate(
-            foundationAddress,
+        candidates[withdrawalAddress] = FoundationCandidate(
+            withdrawalAddress,
             name,
+            coWithdrawalAddress,
             0,
             0
         );
     }
 
-    function countVote(address foundationAddress) private view returns (bool) {
-        FoundationCandidate storage candidate = candidates[foundationAddress];
+    function countVote(address withdrawalAddress) private view returns (bool) {
+        FoundationCandidate storage candidate = candidates[withdrawalAddress];
         uint256 yesCount = candidate.yesVotes;
         uint256 noCount = candidate.noVotes;
 
@@ -124,36 +126,35 @@ contract Kindlink is Initializable {
     }
 
     function approveCandidate(
-        address foundationAddress
-    ) external checkFoundationCandidate(foundationAddress) {
-        if (countVote(foundationAddress)) {
+        address withdrawalAddress
+    ) external checkFoundationCandidate(withdrawalAddress) {
+        if (countVote(withdrawalAddress)) {
             Foundation newFoundation = new Foundation(
                 owner,
-                foundationAddress,
-                candidates[foundationAddress].coWithdrawalAddress
+                withdrawalAddress,
+                candidates[withdrawalAddress].coWithdrawalAddress
             );
             foundations[address(newFoundation)] = ListedFoundation(
                 address(newFoundation),
-                candidates[foundationAddress].name,
-                candidates[foundationAddress].coWithdrawalAddress
+                candidates[withdrawalAddress].name
             );
-            delete candidates[foundationAddress];
+            delete candidates[withdrawalAddress];
 
             emit WinsVote(address(newFoundation));
         } else {
-            delete candidates[foundationAddress];
-            emit LoseVote(foundationAddress);
+            delete candidates[withdrawalAddress];
+            emit LoseVote(withdrawalAddress);
         }
     }
 
     function getCandidates(
-        address foundationAddress
+        address withdrawalAddress
     ) external view returns (address, string memory, uint256, uint256) {
         return (
-            candidates[foundationAddress].withdrawalAddress,
-            candidates[foundationAddress].name,
-            candidates[foundationAddress].yesVotes,
-            candidates[foundationAddress].noVotes
+            candidates[withdrawalAddress].withdrawalAddress,
+            candidates[withdrawalAddress].name,
+            candidates[withdrawalAddress].yesVotes,
+            candidates[withdrawalAddress].noVotes
         );
     }
 
@@ -162,10 +163,10 @@ contract Kindlink is Initializable {
         _;
     }
 
-    modifier checkFoundationCandidate(address foundationAddress) {
-        FoundationCandidate storage candidate = candidates[foundationAddress];
+    modifier checkFoundationCandidate(address withdrawalAddress) {
+        FoundationCandidate storage candidate = candidates[withdrawalAddress];
         require(
-            candidate.withdrawalAddress == foundationAddress,
+            candidate.withdrawalAddress == withdrawalAddress,
             "Foundation Candidate not found"
         );
         _;
