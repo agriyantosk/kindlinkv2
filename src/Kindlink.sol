@@ -10,8 +10,8 @@ contract Kindlink is Initializable {
     struct FoundationCandidate {
         address contractAddress;
         string name;
-        uint yesVotes;
-        uint noVotes;
+        uint256 yesVotes;
+        uint256 noVotes;
     }
 
     struct ListedFoundation {
@@ -23,20 +23,16 @@ contract Kindlink is Initializable {
     mapping(address => FoundationCandidate) candidates;
     mapping(address => ListedFoundation) foundations;
     mapping(address => mapping(address => bool)) isVoted;
-    mapping(address => uint) totalUsersDonations;
+    mapping(address => uint256) totalUsersDonations;
 
     event Donate(
         address indexed sender,
         address indexed foundation,
-        uint value
+        uint256 value
     );
     event Vote(address indexed sender, address indexed foundation, bool vote);
     event WinsVote(address indexed foundation);
     event LoseVote(address indexed foundation);
-
-    // constructor() {
-    //     owner = msg.sender;
-    // }
 
     function initialize() public initializer {
         owner = msg.sender;
@@ -99,9 +95,9 @@ contract Kindlink is Initializable {
 
     function countVote(address foundationAddress) private view returns (bool) {
         FoundationCandidate storage candidate = candidates[foundationAddress];
-        uint yesCount = candidate.yesVotes /
+        uint256 yesCount = candidate.yesVotes /
             (candidate.yesVotes + candidate.noVotes);
-        uint noCount = candidate.noVotes /
+        uint256 noCount = candidate.noVotes /
             (candidate.yesVotes + candidate.noVotes);
 
         if (yesCount > noCount) {
@@ -133,6 +129,17 @@ contract Kindlink is Initializable {
             delete candidates[foundationAddress];
             emit LoseVote(foundationAddress);
         }
+    }
+
+    function getCandidates(
+        address foundationAddress
+    ) external view returns (address, string memory, uint256, uint256) {
+        return (
+            candidates[foundationAddress].contractAddress,
+            candidates[foundationAddress].name,
+            candidates[foundationAddress].yesVotes,
+            candidates[foundationAddress].noVotes
+        );
     }
 
     modifier onlyOwner() {

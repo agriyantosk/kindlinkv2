@@ -6,14 +6,10 @@ contract Foundation {
     address public withdrawalAddress;
     address public coWithdrawalAddress;
     mapping(address => bool) hasApproved;
-    uint public approvalRequirement = 3;
-    uint public approval;
+    uint256 public approvalRequirement = 3;
+    uint256 public approval;
 
-    constructor(
-        address _ownerAddress,
-        address _withdrawalAddress,
-        address _coWithdrawalAddress
-    ) {
+    constructor(address _ownerAddress, address _withdrawalAddress, address _coWithdrawalAddress) {
         ownerAddress = _ownerAddress;
         withdrawalAddress = _withdrawalAddress;
         coWithdrawalAddress = _coWithdrawalAddress;
@@ -23,18 +19,11 @@ contract Foundation {
     }
 
     event Approve(address indexed sender, string message);
-    event Withdraw(address indexed sender, uint value);
+    event Withdraw(address indexed sender, uint256 value);
 
     function approve() external {
-        require(
-            !hasApproved[msg.sender],
-            "You already approved the withdrawal"
-        );
-        if (
-            msg.sender == ownerAddress ||
-            msg.sender == withdrawalAddress ||
-            msg.sender == coWithdrawalAddress
-        ) {
+        require(!hasApproved[msg.sender], "You already approved the withdrawal");
+        if (msg.sender == ownerAddress || msg.sender == withdrawalAddress || msg.sender == coWithdrawalAddress) {
             approval += 1;
         }
         hasApproved[msg.sender] = true;
@@ -44,9 +33,7 @@ contract Foundation {
 
     function withdraw() external {
         require(msg.sender == withdrawalAddress, "Invalid withdrawal address");
-        (bool sent, ) = withdrawalAddress.call{value: address(this).balance}(
-            ""
-        );
+        (bool sent,) = withdrawalAddress.call{value: address(this).balance}("");
         require(sent, "Withdrawal Failed");
         emit Withdraw(msg.sender, address(this).balance);
     }

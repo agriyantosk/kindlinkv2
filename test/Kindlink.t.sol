@@ -23,7 +23,85 @@ contract KindlinkTest is Test {
         Kindlink(address(proxy)).initialize();
     }
 
-    function testOwner() public {
-        assert(Kindlink(address(proxy)).owner() == owner);
+    function testOwner() public view {
+        assertEq(Kindlink(address(proxy)).owner(), owner);
+    }
+
+    function testAddCandidateOnlyOwnerFailed() public {
+        address foundationAddress = makeAddr("foundationAddress");
+        vm.expectRevert("Only owner can do this action");
+        Kindlink(address(proxy)).addCandidates(foundationAddress, "KitaBisa");
+    }
+
+    function testAddCandidate() public {
+        address foundationAddress = makeAddr("foundationAddress");
+        string memory foundationName = "KitaBisa";
+        vm.prank(owner);
+        Kindlink(address(proxy)).addCandidates(
+            foundationAddress,
+            foundationName
+        );
+        (
+            address contractAddress,
+            string memory name,
+            uint yesVotes,
+            uint noVotes
+        ) = Kindlink(address(proxy)).getCandidates(foundationAddress);
+        assertEq(contractAddress, foundationAddress);
+        assertEq(name, foundationName);
+        assertEq(yesVotes, 0);
+        assertEq(noVotes, 0);
+    }
+
+    function testAddCandidateFuzz(
+        address foundationAddress,
+        string memory foundationName
+    ) public {
+        // address foundationAddress = makeAddr("foundationAddress");
+        // string memory foundationName = "KitaBisa";
+        vm.prank(owner);
+        Kindlink(address(proxy)).addCandidates(
+            foundationAddress,
+            foundationName
+        );
+        (
+            address contractAddress,
+            string memory name,
+            uint yesVotes,
+            uint noVotes
+        ) = Kindlink(address(proxy)).getCandidates(foundationAddress);
+        assertEq(contractAddress, foundationAddress);
+        assertEq(name, foundationName);
+        assertEq(yesVotes, 0);
+        assertEq(noVotes, 0);
+    }
+
+    function testVoteLessEtherFailed() public {
+        address foundationAddress = makeAddr("foundationAddress");
+        bool inputVote = true;
+        address user1 = makeAddr("user1");
+        vm.prank(user1);
+        vm.expectRevert(
+            "You must have a minimal total donations of 1 ETH to be able to contribute in the voting process"
+        );
+        Kindlink(address(proxy)).vote(inputVote, foundationAddress);
+    }
+
+    modifier cheat() {
+        address foundationAddress = makeAddr("foundationAddress");
+        string memory foundationName = "KitaBisa";
+        vm.startPrank(owner);
+        Kindlink(address(proxy)).addCandidates(
+            foundationAddress,
+            foundationName
+        );
+
+        _;
+    }
+
+    function testVoteIsVotedFailed() public {
+        address user1 = makeAddr("user1");
+        vm.deal(user1, 1 ether);
+        // Kindlink(address(proxy)).donate(foundationAdress);
     }
 }
