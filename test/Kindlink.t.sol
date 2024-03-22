@@ -42,47 +42,59 @@ contract KindlinkTest is Test {
 
     function testAddCandidateOnlyOwnerFailed() public {
         vm.expectRevert("Only owner can do this action");
-        Kindlink(address(proxy)).addCandidates(foundationAddress, "KitaBisa");
+        Kindlink(address(proxy)).addCandidates(
+            wdAddress,
+            foundationName,
+            coWdAddress
+        );
     }
 
     function testAddCandidate() public {
         vm.prank(owner);
         Kindlink(address(proxy)).addCandidates(
-            foundationAddress,
-            foundationName
+            wdAddress,
+            foundationName,
+            coWdAddress
         );
         (
-            address contractAddress,
+            address withdrawalAddress,
             string memory name,
+            address coWithdrawalAddress,
             uint yesVotes,
             uint noVotes
-        ) = Kindlink(address(proxy)).getCandidates(foundationAddress);
-        assertEq(contractAddress, foundationAddress);
+        ) = Kindlink(address(proxy)).getCandidates(wdAddress);
+        assertEq(withdrawalAddress, wdAddress);
         assertEq(name, foundationName);
+        assertEq(coWithdrawalAddress, coWdAddress);
         assertEq(yesVotes, 0);
         assertEq(noVotes, 0);
     }
 
     function testAddCandidateFuzz(
-        address _foundationAddress,
-        string memory _foundationName
+        address _withdrawalAddress,
+        string memory _foundationName,
+        address _coWithdrawalAddress
     ) public {
         // address foundationAddress = makeAddr("foundationAddress");
         // string memory foundationName = "KitaBisa";
-        vm.assume(_foundationAddress != address(0));
+        vm.assume(_withdrawalAddress != address(0));
+        vm.assume(_coWithdrawalAddress != address(0));
         vm.prank(owner);
         Kindlink(address(proxy)).addCandidates(
-            _foundationAddress,
-            _foundationName
+            _withdrawalAddress,
+            _foundationName,
+            _coWithdrawalAddress
         );
         (
             address contractAddress,
             string memory name,
+            address coWithdrawalAddress,
             uint yesVotes,
             uint noVotes
-        ) = Kindlink(address(proxy)).getCandidates(_foundationAddress);
-        assertEq(contractAddress, _foundationAddress);
+        ) = Kindlink(address(proxy)).getCandidates(_withdrawalAddress);
+        assertEq(contractAddress, _withdrawalAddress);
         assertEq(name, _foundationName);
+        assertEq(coWithdrawalAddress, _coWithdrawalAddress);
         assertEq(yesVotes, 0);
         assertEq(noVotes, 0);
     }
@@ -100,8 +112,9 @@ contract KindlinkTest is Test {
     modifier cheat() {
         vm.startPrank(owner);
         Kindlink(address(proxy)).addCandidates(
-            foundationAddress,
-            foundationName
+            wdAddress,
+            foundationName,
+            coWdAddress
         );
 
         _;
@@ -116,8 +129,9 @@ contract KindlinkTest is Test {
 
         vm.prank(owner);
         Kindlink(address(proxy)).addCandidates(
-            foundationAddress,
-            foundationName
+            wdAddress,
+            foundationName,
+            coWdAddress
         );
 
         vm.startPrank(user1);
@@ -127,7 +141,7 @@ contract KindlinkTest is Test {
         vm.stopPrank();
     }
 
-    function testVote() public {
+    function testVoteSuccess() public {
         address user1 = makeAddr("user1");
         vm.deal(user1, 10 ether);
 
@@ -136,22 +150,25 @@ contract KindlinkTest is Test {
 
         vm.prank(owner);
         Kindlink(address(proxy)).addCandidates(
-            foundationAddress,
-            foundationName
+            wdAddress,
+            foundationName,
+            coWdAddress
         );
 
         vm.prank(user1);
-        Kindlink(address(proxy)).vote(true, foundationAddress);
+        Kindlink(address(proxy)).vote(true, wdAddress);
 
         (
-            address contractAddress,
+            address withdrawalAddress,
             string memory name,
+            address coWithdrawalAddress,
             uint yesVotes,
             uint noVotes
-        ) = Kindlink(address(proxy)).getCandidates(foundationAddress);
+        ) = Kindlink(address(proxy)).getCandidates(wdAddress);
 
-        assertEq(contractAddress, foundationAddress);
+        assertEq(withdrawalAddress, wdAddress);
         assertEq(name, "KitaBisa");
+        assertEq(coWithdrawalAddress, coWdAddress);
         assertEq(yesVotes, 1);
         assertEq(noVotes, 0);
     }
@@ -181,17 +198,10 @@ contract KindlinkTest is Test {
         string memory name = "KitaBisa";
         address coWithdrawalAddress = makeAddr("coWithdrawalAddress");
         vm.expectRevert("Foundation Candidate not found");
-        Kindlink(address(proxy)).approveCandidate(
-            falseFoundationAddress,
-            name,
-            coWithdrawalAddress
-        );
+        Kindlink(address(proxy)).approveCandidate(falseFoundationAddress);
     }
 }
 
 /* 
-- ganti foundation address jadi withdrawal address aja untuk konteks yang masih candidates
-- tambah coWith address pada saat deploy
-- ganti proses listedFoundation jadi ngambil aja dari mapping candidate biar gausah bawa data
 - tambahin proxy upgradable apapun itu
  */

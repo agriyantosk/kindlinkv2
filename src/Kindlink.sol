@@ -149,10 +149,15 @@ contract Kindlink is Initializable {
 
     function getCandidates(
         address withdrawalAddress
-    ) external view returns (address, string memory, uint256, uint256) {
+    )
+        external
+        view
+        returns (address, string memory, address, uint256, uint256)
+    {
         return (
             candidates[withdrawalAddress].withdrawalAddress,
             candidates[withdrawalAddress].name,
+            candidates[withdrawalAddress].coWithdrawalAddress,
             candidates[withdrawalAddress].yesVotes,
             candidates[withdrawalAddress].noVotes
         );
