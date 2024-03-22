@@ -3,10 +3,12 @@ pragma solidity 0.8.22;
 
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
-import "./Foundation.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {Foundation} from "./Foundation.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract Kindlink is Initializable {
+contract Kindlink is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     struct FoundationCandidate {
         address withdrawalAddress;
         string name;
@@ -20,7 +22,6 @@ contract Kindlink is Initializable {
         string name;
     }
 
-    address public owner;
     mapping(address => FoundationCandidate) candidates;
     mapping(address => ListedFoundation) foundations;
     mapping(address => mapping(address => bool)) isVoted;
@@ -39,7 +40,8 @@ contract Kindlink is Initializable {
         address[] memory _withdrawalAddress,
         string[] memory _foundationName
     ) public initializer {
-        owner = msg.sender;
+        __Ownable_init(msg.sender); //owner = msg.sender;
+        __UUPSUpgradeable_init(); //* To tell that this contract is upgradeable.
         require(
             _withdrawalAddress.length == _foundationName.length,
             "Foundation Address and Name length must be the same"
@@ -130,7 +132,7 @@ contract Kindlink is Initializable {
     ) external checkFoundationCandidate(withdrawalAddress) {
         if (countVote(withdrawalAddress)) {
             Foundation newFoundation = new Foundation(
-                owner,
+                owner(),
                 withdrawalAddress,
                 candidates[withdrawalAddress].coWithdrawalAddress
             );
@@ -163,10 +165,7 @@ contract Kindlink is Initializable {
         );
     }
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner can do this action");
-        _;
-    }
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner() {}
 
     modifier checkFoundationCandidate(address withdrawalAddress) {
         FoundationCandidate storage candidate = candidates[withdrawalAddress];
