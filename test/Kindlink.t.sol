@@ -175,4 +175,16 @@ contract KindlinkTest is Test {
 
         assertEq(foundationAddresses[0].balance, 1 ether);
     }
+
+    function testApproveCandidateNotFoundFailed() public {
+        address falseFoundationAddress = makeAddr("falseFoundationAddress");
+        string memory name = "KitaBisa";
+        address coWithdrawalAddress = makeAddr("coWithdrawalAddress");
+        vm.expectRevert("Foundation Candidate not found");
+        Kindlink(address(proxy)).approveCandidate(
+            falseFoundationAddress,
+            name,
+            coWithdrawalAddress
+        );
+    }
 }
