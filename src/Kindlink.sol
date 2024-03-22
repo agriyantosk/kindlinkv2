@@ -73,6 +73,7 @@ contract Kindlink is Initializable {
     }
 
     function addCandidates(address foundationAddress, string memory name) external onlyOwner {
+        require(foundationAddress != address(0), "Not allowing users to send ether to 0 address");
         candidates[foundationAddress] = FoundationCandidate(foundationAddress, name, 0, 0);
     }
 

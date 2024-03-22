@@ -30,7 +30,10 @@ contract KindlinkTest is Test {
         foundationNames.push(foundationName);
 
         vm.prank(owner);
-        Kindlink(address(proxy)).initialize(foundationAddresses, foundationNames);
+        Kindlink(address(proxy)).initialize(
+            foundationAddresses,
+            foundationNames
+        );
     }
 
     function testOwner() public view {
@@ -66,6 +69,7 @@ contract KindlinkTest is Test {
     ) public {
         // address foundationAddress = makeAddr("foundationAddress");
         // string memory foundationName = "KitaBisa";
+        vm.assume(_foundationAddress != address(0));
         vm.prank(owner);
         Kindlink(address(proxy)).addCandidates(
             _foundationAddress,
@@ -76,9 +80,9 @@ contract KindlinkTest is Test {
             string memory name,
             uint yesVotes,
             uint noVotes
-        ) = Kindlink(address(proxy)).getCandidates(foundationAddress);
-        assertEq(contractAddress, foundationAddress);
-        assertEq(name, foundationName);
+        ) = Kindlink(address(proxy)).getCandidates(_foundationAddress);
+        assertEq(contractAddress, _foundationAddress);
+        assertEq(name, _foundationName);
         assertEq(yesVotes, 0);
         assertEq(noVotes, 0);
     }
@@ -109,7 +113,7 @@ contract KindlinkTest is Test {
 
         vm.prank(user1);
         Kindlink(address(proxy)).donate{value: 1 ether}(foundationAddresses[0]);
-        
+
         vm.prank(owner);
         Kindlink(address(proxy)).addCandidates(
             foundationAddress,
@@ -121,5 +125,34 @@ contract KindlinkTest is Test {
         vm.expectRevert("You have already voted for this Foundation");
         Kindlink(address(proxy)).vote(false, foundationAddress);
         vm.stopPrank();
+    }
+
+    function testVote() public {
+        address user1 = makeAddr("user1");
+        vm.deal(user1, 10 ether);
+
+        vm.prank(user1);
+        Kindlink(address(proxy)).donate{value: 1 ether}(foundationAddresses[0]);
+
+        vm.prank(owner);
+        Kindlink(address(proxy)).addCandidates(
+            foundationAddress,
+            foundationName
+        );
+
+        vm.prank(user1);
+        Kindlink(address(proxy)).vote(true, foundationAddress);
+
+        (
+            address contractAddress,
+            string memory name,
+            uint yesVotes,
+            uint noVotes
+        ) = Kindlink(address(proxy)).getCandidates(foundationAddress);
+
+        assertEq(contractAddress, foundationAddress);
+        assertEq(name, "KitaBisa");
+        assertEq(yesVotes, 1);
+        assertEq(noVotes, 0);
     }
 }
