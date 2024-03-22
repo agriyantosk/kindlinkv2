@@ -15,12 +15,22 @@ contract KindlinkTest is Test {
     address wdAddress = makeAddr("wdAddress");
     address coWdAddress = makeAddr("coWdAddress");
 
+    address foundationAddress = makeAddr("foundationAddress");
+    string foundationName = "KitaBisa";
+
+    address[] foundationAddresses;
+    string[] foundationNames;
+
     function setUp() public {
-        kindlink = new Kindlink();
         foundation = new Foundation(owner, wdAddress, coWdAddress);
+        kindlink = new Kindlink();
         proxy = new ERC1967Proxy(address(kindlink), "");
+
+        foundationAddresses.push(foundationAddress);
+        foundationNames.push(foundationName);
+
         vm.prank(owner);
-        Kindlink(address(proxy)).initialize();
+        Kindlink(address(proxy)).initialize(foundationAddresses, foundationNames);
     }
 
     function testOwner() public view {
@@ -28,14 +38,11 @@ contract KindlinkTest is Test {
     }
 
     function testAddCandidateOnlyOwnerFailed() public {
-        address foundationAddress = makeAddr("foundationAddress");
         vm.expectRevert("Only owner can do this action");
         Kindlink(address(proxy)).addCandidates(foundationAddress, "KitaBisa");
     }
 
     function testAddCandidate() public {
-        address foundationAddress = makeAddr("foundationAddress");
-        string memory foundationName = "KitaBisa";
         vm.prank(owner);
         Kindlink(address(proxy)).addCandidates(
             foundationAddress,
@@ -54,15 +61,15 @@ contract KindlinkTest is Test {
     }
 
     function testAddCandidateFuzz(
-        address foundationAddress,
-        string memory foundationName
+        address _foundationAddress,
+        string memory _foundationName
     ) public {
         // address foundationAddress = makeAddr("foundationAddress");
         // string memory foundationName = "KitaBisa";
         vm.prank(owner);
         Kindlink(address(proxy)).addCandidates(
-            foundationAddress,
-            foundationName
+            _foundationAddress,
+            _foundationName
         );
         (
             address contractAddress,
@@ -77,7 +84,6 @@ contract KindlinkTest is Test {
     }
 
     function testVoteLessEtherFailed() public {
-        address foundationAddress = makeAddr("foundationAddress");
         bool inputVote = true;
         address user1 = makeAddr("user1");
         vm.prank(user1);
@@ -88,8 +94,6 @@ contract KindlinkTest is Test {
     }
 
     modifier cheat() {
-        address foundationAddress = makeAddr("foundationAddress");
-        string memory foundationName = "KitaBisa";
         vm.startPrank(owner);
         Kindlink(address(proxy)).addCandidates(
             foundationAddress,
@@ -101,7 +105,21 @@ contract KindlinkTest is Test {
 
     function testVoteIsVotedFailed() public {
         address user1 = makeAddr("user1");
-        vm.deal(user1, 1 ether);
-        // Kindlink(address(proxy)).donate(foundationAdress);
+        vm.deal(user1, 10 ether);
+
+        vm.prank(user1);
+        Kindlink(address(proxy)).donate{value: 1 ether}(foundationAddresses[0]);
+        
+        vm.prank(owner);
+        Kindlink(address(proxy)).addCandidates(
+            foundationAddress,
+            foundationName
+        );
+
+        vm.startPrank(user1);
+        Kindlink(address(proxy)).vote(true, foundationAddress);
+        vm.expectRevert("You have already voted for this Foundation");
+        Kindlink(address(proxy)).vote(false, foundationAddress);
+        vm.stopPrank();
     }
 }
