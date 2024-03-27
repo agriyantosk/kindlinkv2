@@ -7,12 +7,20 @@ import {Foundation} from "./Foundation.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+// import {AutomationRegistrar2_1} from "@chainlink/contracts/v0.8/automation/v2_1/AutomationRegistrar2_1.sol";
+
+// interface AutomationRegistrarInterface {
+//     function registerUpkeep(
+//         RegistrationParams calldata requestParams
+//     ) external returns (uint256);
+// }
 
 contract Kindlink is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     struct FoundationCandidate {
         address withdrawalAddress;
         string name;
         address coWithdrawalAddress;
+        uint256 endVotingTime;
         uint256 yesVotes;
         uint256 noVotes;
     }
@@ -97,6 +105,18 @@ contract Kindlink is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         emit Vote(msg.sender, withdrawalAddress, inputVote);
     }
 
+    // function checkUpkeep(
+    //     bytes calldata /* checkData */
+    // )
+    //     external
+    //     view
+    //     override
+    //     returns (bool upkeepNeeded, bytes memory /* performData */)
+    // {
+    //     upkeepNeeded = (block.timestamp - lastTimeStamp) > interval;
+    //     // We don't use the checkData in this example. The checkData is defined when the Upkeep was registered.
+    // }
+
     function addCandidates(
         address withdrawalAddress,
         string memory name,
@@ -110,9 +130,41 @@ contract Kindlink is Initializable, OwnableUpgradeable, UUPSUpgradeable {
             withdrawalAddress,
             name,
             coWithdrawalAddress,
+            block.timestamp + 3 days,
             0,
             0
         );
+        // AutomationRegistrar2_1.RegistrationParams memory params = RegistrationParams({
+        //     // General Information
+        //     name: candidates[withdrawalAddress].name, // Descriptive name for the upkeep job
+        //     encryptedEmail: "", // Encrypted email for notifications (optional)
+        //     upkeepContract: address(this), // Contract address that will receive upkeep calls
+        //     gasLimit: 100000, // Maximum gas to allocate for upkeep calls
+        //     adminAddress: msg.sender, // Address with administrative permissions
+        //     // Trigger Configuration
+        //     triggerType: 0, // Trigger type (0: Run at fixed intervals)
+        //     checkData: bytes(""), // Empty byte string for fixed-interval jobs
+        //     triggerConfig: bytes4(keccak256("0x1234...")), // Hash of custom trigger configuration (optional)
+        //     // Off-Chain Configuration and Payment
+        //     offchainConfig: bytes(""), // Empty byte string for this example
+        //     amount: 100000000000000000 // Amount of LINK to pay per upkeep call (in Wei)
+        // });
+        // uint256 upkeepID = AutomationRegistrarInterface.registerUpkeep(params);
+
+        /* 
+            struct RegistrationParams {
+            string name;
+            bytes encryptedEmail;
+            address upkeepContract;
+            uint32 gasLimit;
+            address adminAddress;
+            uint8 triggerType;
+            bytes checkData;
+            bytes triggerConfig;
+            bytes offchainConfig;
+            uint96 amount;
+            }
+        */
     }
 
     function countVote(address withdrawalAddress) private view returns (bool) {
